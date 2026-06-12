@@ -7,7 +7,9 @@ HTML5 canvas and vanilla JavaScript — no dependencies, no build step.
 
 ## Play
 
-Open `index.html` in any modern browser, or serve the folder:
+**Play online:** https://dermosef91.github.io/Neon-Horizon-Reloaded/
+
+Or open `index.html` in any modern browser, or serve the folder:
 
 ```sh
 npx serve .
@@ -25,6 +27,10 @@ then visit `http://localhost:8000`.
 | ↑ / W / Space | Jump (hold for higher jumps) |
 | Enter | Start game |
 | R | Restart after win / game over |
+
+**On mobile / touch devices** on-screen buttons appear automatically:
+◀ ▶ to move, JUMP to jump, and tap the screen to start or restart.
+The canvas scales to fill any screen size (landscape recommended).
 
 ## How to win
 
@@ -46,3 +52,5 @@ are converted into a score bonus.
 - 3 hearts, invulnerability frames, pit respawn at last safe ground
 - Win and game-over states, score, progress bar to the exit
 - Tiny WebAudio sound effects (jump, stomp, hurt, pickup, fanfare)
+- Mobile support: responsive canvas scaling and on-screen touch controls
+- Auto-deployed to GitHub Pages via GitHub Actions on every push

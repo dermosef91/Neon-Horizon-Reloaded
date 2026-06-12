@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Neon Horizon: Reloaded</title>
 <style>
   html, body {
@@ -11,6 +11,8 @@
     height: 100%;
     background: #0c0c10;
     overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
   }
   body {
     display: flex;
@@ -22,11 +24,69 @@
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     background: #0c0c10;
+    touch-action: none;
   }
+  /* ---- touch controls (shown on coarse-pointer devices) ---- */
+  #touch { display: none; }
+  @media (pointer: coarse) { #touch { display: block; } }
+  #touch button {
+    position: fixed;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(232, 118, 42, 0.16);
+    border: 2px solid rgba(232, 118, 42, 0.65);
+    color: #ffb347;
+    font-size: 24px;
+    font-family: inherit;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 10;
+  }
+  #touch button:active {
+    background: rgba(232, 118, 42, 0.38);
+  }
+  #btnL { left: calc(18px + env(safe-area-inset-left)); }
+  #btnR { left: calc(96px + env(safe-area-inset-left)); }
+  #btnJ {
+    right: calc(18px + env(safe-area-inset-right));
+    width: 76px;
+    height: 76px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  /* ---- non-blocking landscape hint on portrait phones ---- */
+  #rotate {
+    display: none;
+    position: fixed;
+    top: calc(8px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(12, 12, 16, 0.85);
+    border: 1px solid rgba(232, 118, 42, 0.65);
+    color: #ffb347;
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 20;
+    white-space: nowrap;
+  }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: block; } }
 </style>
 </head>
 <body>
 <canvas id="game" width="480" height="270"></canvas>
+<div id="touch">
+  <button id="btnL" aria-label="Move left">&#9664;</button>
+  <button id="btnR" aria-label="Move right">&#9654;</button>
+  <button id="btnJ" aria-label="Jump">JUMP</button>
+</div>
+<div id="rotate">Rotate for the best view &#8635;</div>
 <script src="game.js"></script>
 </body>
 </html>

@@ -13,16 +13,17 @@ ctx.imageSmoothingEnabled = false;
 const VIEW_W = 480, VIEW_H = 270;
 const TILE = 16;
 
-/* ---------- responsive integer-ish scaling ---------- */
+/* ---------- responsive scaling ----------
+   Integer scale on large screens (crisp pixels); fractional scale on
+   small / mobile screens so the game always fills the viewport. */
 function fitCanvas() {
-  const s = Math.max(1, Math.min(
-    Math.floor(window.innerWidth / VIEW_W),
-    Math.floor(window.innerHeight / VIEW_H)
-  ));
+  let s = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
+  if (s >= 2) s = Math.floor(s);
   canvas.style.width = (VIEW_W * s) + 'px';
   canvas.style.height = (VIEW_H * s) + 'px';
 }
 window.addEventListener('resize', fitCanvas);
+window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 100));
 fitCanvas();
 
 /* ============================================================
@@ -468,6 +469,38 @@ window.addEventListener('keydown', (e) => {
   if ((state === 'win' || state === 'gameover') && e.key.toLowerCase() === 'r') startGame();
 });
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+/* ---- touch controls: buttons feed the same key state ---- */
+function bindTouchButton(id, key) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const press = (e) => {
+    e.preventDefault();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+  };
+  const release = (e) => {
+    e.preventDefault();
+    window.dispatchEvent(new KeyboardEvent('keyup', { key }));
+  };
+  el.addEventListener('pointerdown', press);
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('pointerleave', release);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+bindTouchButton('btnL', 'ArrowLeft');
+bindTouchButton('btnR', 'ArrowRight');
+bindTouchButton('btnJ', ' ');
+
+/* tap the screen to start / restart */
+canvas.addEventListener('pointerdown', () => {
+  ensureAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (state === 'title' || state === 'win' || state === 'gameover') startGame();
+});
+
+const IS_TOUCH = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
 const left = () => keys['arrowleft'] || keys['a'];
 const right = () => keys['arrowright'] || keys['d'];
 const jumpKey = () => keys['arrowup'] || keys['w'] || keys[' '];
@@ -867,9 +900,9 @@ function drawTitle() {
 
   centerText('NEON HORIZON', 96, 32, C.neon);
   centerText('R E L O A D E D', 118, 12, C.amber);
-  centerText('Arrows / WASD to move - Space to jump', 168, 9, C.white);
+  centerText(IS_TOUCH ? 'On-screen buttons to move and jump' : 'Arrows / WASD to move - Space to jump', 168, 9, C.white);
   centerText('Stomp the bots - Grab the cells - Reach the EXIT gate', 184, 9, C.white);
-  if ((frame / 30 | 0) % 2 === 0) centerText('PRESS ENTER TO START', 222, 11, C.neon);
+  if ((frame / 30 | 0) % 2 === 0) centerText(IS_TOUCH ? 'TAP TO START' : 'PRESS ENTER TO START', 222, 11, C.neon);
 }
 
 function drawOverlay(title, sub, color) {
@@ -878,7 +911,7 @@ function drawOverlay(title, sub, color) {
   centerText(title, 116, 26, color);
   centerText(sub, 142, 11, C.white);
   centerText('FINAL SCORE  ' + score, 166, 11, C.amber);
-  if ((frame / 30 | 0) % 2 === 0) centerText('PRESS R TO PLAY AGAIN', 200, 10, C.neon);
+  if ((frame / 30 | 0) % 2 === 0) centerText(IS_TOUCH ? 'TAP TO PLAY AGAIN' : 'PRESS R TO PLAY AGAIN', 200, 10, C.neon);
 }
 
 /* ============================================================
