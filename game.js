@@ -10,20 +10,30 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
-const VIEW_W = 480, VIEW_H = 270;
+const VIEW_H = 270;
+let VIEW_W = 480;
 const TILE = 16;
 
 /* ---------- responsive scaling ----------
-   Integer scale on large screens (crisp pixels); fractional scale on
-   small / mobile screens so the game always fills the viewport. */
+   The internal width adapts to the screen's aspect ratio (within limits)
+   so the game fills the whole display edge-to-edge with no letterboxing.
+   Integer scale on large screens keeps pixels crisp; fractional scale on
+   small / mobile screens fills the viewport. */
 function fitCanvas() {
+  const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+  VIEW_W = Math.max(480, Math.min(720, Math.round(VIEW_H * aspect / 2) * 2));
+  if (canvas.width !== VIEW_W) {
+    canvas.width = VIEW_W;
+    ctx.imageSmoothingEnabled = false;   // resizing resets context state
+  }
   let s = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H);
   if (s >= 2) s = Math.floor(s);
   canvas.style.width = (VIEW_W * s) + 'px';
   canvas.style.height = (VIEW_H * s) + 'px';
 }
 window.addEventListener('resize', fitCanvas);
-window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 100));
+window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 150));
+document.addEventListener('fullscreenchange', () => setTimeout(fitCanvas, 50));
 fitCanvas();
 
 /* ============================================================
@@ -298,8 +308,8 @@ function makeLayer(w, h, draw) {
   return cv;
 }
 
-/* sky + clouds */
-const layerSky = makeLayer(VIEW_W, VIEW_H, (c, w, h) => {
+/* sky + clouds (sky is a vertical gradient, stretched to any view width) */
+const layerSky = makeLayer(64, VIEW_H, (c, w, h) => {
   const g = c.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, C.skyTop);
   g.addColorStop(0.6, C.skyBot);
@@ -492,10 +502,33 @@ bindTouchButton('btnL', 'ArrowLeft');
 bindTouchButton('btnR', 'ArrowRight');
 bindTouchButton('btnJ', ' ');
 
-/* tap the screen to start / restart */
-canvas.addEventListener('pointerdown', () => {
+/* fullscreen (best effort — must be called from a user gesture) */
+function goFullscreen() {
+  const el = document.documentElement;
+  const rfs = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!rfs || document.fullscreenElement) return;
+  try {
+    const p = rfs.call(el);
+    if (p && p.then) {
+      p.then(() => {
+        if (screen.orientation && screen.orientation.lock)
+          screen.orientation.lock('landscape').catch(() => {});
+      }).catch(() => {});
+    }
+  } catch (err) { /* unsupported (e.g. iOS Safari) */ }
+}
+const btnF = document.getElementById('btnF');
+if (btnF) btnF.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  else goFullscreen();
+});
+
+/* tap the screen to start / restart (and go fullscreen on touch devices) */
+canvas.addEventListener('pointerdown', (e) => {
   ensureAudio();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  if (e.pointerType === 'touch') goFullscreen();
   if (state === 'title' || state === 'win' || state === 'gameover') startGame();
 });
 
@@ -581,10 +614,13 @@ function moveAndCollide(e) {
   x0 = Math.floor(e.x / TILE); x1 = Math.floor((e.x + e.w - 1) / TILE);
   y0 = Math.floor(e.y / TILE); y1 = Math.floor((e.y + e.h - 1) / TILE);
   if (e.vy > 0) {
+    /* use the bottom edge itself so resting exactly on a tile boundary
+       still registers as contact (otherwise one-way platforms drop you) */
+    const rowB = Math.floor((e.y + e.h) / TILE);
     for (let tx = x0; tx <= x1; tx++) {
-      const t = tileAt(tx, y1);
-      if (t === SOLID || (t === ONEWAY && prevBottom <= y1 * TILE + 0.01)) {
-        e.y = y1 * TILE - e.h; e.vy = 0; res.grounded = true; break;
+      const t = tileAt(tx, rowB);
+      if (t === SOLID || (t === ONEWAY && prevBottom <= rowB * TILE + 0.01)) {
+        e.y = rowB * TILE - e.h; e.vy = 0; res.grounded = true; break;
       }
     }
   } else if (e.vy < 0) {
@@ -754,7 +790,7 @@ function drawParallax(layer, factor, y, drift) {
 }
 
 function drawWorld() {
-  ctx.drawImage(layerSky, 0, 0);
+  ctx.drawImage(layerSky, 0, 0, VIEW_W, VIEW_H);
   drawParallax(layerClouds, 0.08, 8, frame * 0.05);
   drawParallax(layerFar, 0.22, 0);
   drawParallax(layerNear, 0.5, 0);
@@ -891,7 +927,7 @@ function centerText(txt, y, size, color) {
 }
 
 function drawTitle() {
-  ctx.drawImage(layerSky, 0, 0);
+  ctx.drawImage(layerSky, 0, 0, VIEW_W, VIEW_H);
   drawParallax(layerClouds, 0, 8, frame * 0.1);
   drawParallax(layerFar, 0, 0, frame * 0.12);
   drawParallax(layerNear, 0, 0, frame * 0.3);
@@ -950,12 +986,21 @@ function render() {
   }
 }
 
-function loop() {
-  frame++;
-  update();
+/* fixed 60 Hz timestep so the game runs at the same speed on
+   high-refresh-rate displays (many phones render at 90/120 Hz) */
+const STEP = 1000 / 60;
+let last = performance.now(), acc = 0;
+function loop(now) {
+  acc += Math.min(now - last, 100);
+  last = now;
+  while (acc >= STEP) {
+    frame++;
+    update();
+    acc -= STEP;
+  }
   render();
   requestAnimationFrame(loop);
 }
-loop();
+requestAnimationFrame(loop);
 
 })();

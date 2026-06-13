@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Neon Horizon: Reloaded</title>
+<meta name="theme-color" content="#0c0c10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   html, body {
     margin: 0;
@@ -59,6 +66,15 @@
     font-weight: bold;
     letter-spacing: 1px;
   }
+  #btnF {
+    bottom: auto;
+    top: calc(10px + env(safe-area-inset-top));
+    right: calc(12px + env(safe-area-inset-right));
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    font-size: 18px;
+  }
   /* ---- non-blocking landscape hint on portrait phones ---- */
   #rotate {
     display: none;
@@ -85,6 +101,7 @@
   <button id="btnL" aria-label="Move left">&#9664;</button>
   <button id="btnR" aria-label="Move right">&#9654;</button>
   <button id="btnJ" aria-label="Jump">JUMP</button>
+  <button id="btnF" aria-label="Toggle fullscreen">&#x26F6;</button>
 </div>
 <div id="rotate">Rotate for the best view &#8635;</div>
 <script src="game.js"></script>
